@@ -1,0 +1,17 @@
+.card-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.rate {
+  border: solid #e9d100 2px;
+  border-radius: 50%;
+  min-width: 30px;
+  min-height: 30px;
+  max-width: 30px;
+  max-height: 30px;
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  line-height: 2;
+}

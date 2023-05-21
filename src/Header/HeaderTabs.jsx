@@ -40,9 +40,6 @@ class HeaderTabs extends React.Component {
     }
     this.getResurs();
     this.getResurs(1, false, '', true);
-    // this.service.getRatedMovies(localStorage.getItem('guest_session_id')).then((data) => {
-    //   console.log(data);
-    // });
   }
 
   componentWillUnmount() {

@@ -1,3 +1,4 @@
+/* eslint-disable no-nested-ternary */
 import React from 'react';
 import { Tabs } from 'antd';
 import { Search } from '../Search/Search';
@@ -13,8 +14,11 @@ class HeaderTabs extends React.Component {
   constructor() {
     super();
     this.state = {
-      movies: [],
+      movies: new Map(),
+      retedMovies: [],
+      fromSearch: '',
       page: 1,
+      goodsPage: 1,
       loading: true,
       error: false,
       notFound: false,
@@ -31,10 +35,14 @@ class HeaderTabs extends React.Component {
         }
       });
     };
-    this.getResurs();
     if (!localStorage.getItem('guest_session_id')) {
       pushGetIdSession();
     }
+    this.getResurs();
+    this.getResurs(1, false, '', true);
+    // this.service.getRatedMovies(localStorage.getItem('guest_session_id')).then((data) => {
+    //   console.log(data);
+    // });
   }
 
   componentWillUnmount() {
@@ -50,8 +58,8 @@ class HeaderTabs extends React.Component {
     this.setState({ notFound: true });
   };
 
-  getResurs = (pageNumber = 1, key = false, value = '') => {
-    this.setState({ loading: true });
+  getResurs = (pageNumber = 1, key = false, value = '', hasMount = false) => {
+    this.setState({ loading: true, fromSearch: value });
     const findGenresName = (ids = [], ganre = []) => {
       const genresName = [];
       ids.forEach((id) => {
@@ -65,12 +73,16 @@ class HeaderTabs extends React.Component {
       return genresName;
     };
 
-    const movieList = key ? this.service.getSearchMovies(value) : this.service.getPopularMovies(pageNumber);
+    const movieList = key
+      ? this.service.getSearchMovies(value, pageNumber)
+      : hasMount
+      ? this.service.getRatedMovies(localStorage.getItem('guest_session_id'))
+      : this.service.getPopularMovies(pageNumber);
     const genreList = this.service.getGenresMovies();
 
     Promise.all([movieList, genreList])
       .then((data) => {
-        if (data[0].results.length === 0) {
+        if (data[0].results.length === 0 && hasMount === false) {
           throw new NotFoundError();
         }
         return data;
@@ -92,12 +104,24 @@ class HeaderTabs extends React.Component {
           };
         });
 
-        this.setState({
-          movies: objArrayMovie,
-          loading: false,
-          error: false,
-          page: pageNumber,
-          notFound: false,
+        this.setState((pre) => {
+          const { movies, retedMovies } = pre;
+          const pageArrayMovies = new Map(movies);
+          pageArrayMovies.set(pageNumber, objArrayMovie);
+          const storegIds = [...new Map(JSON.parse(localStorage.getItem('reted'))).keys()];
+          const filtreObjArrayMovie = objArrayMovie.filter((item) => storegIds.includes(item.id));
+          const uniqueMovies = [...retedMovies, ...filtreObjArrayMovie].filter(
+            (v, index, self) => self.findIndex((item) => item.id === v.id) === index
+          );
+
+          return {
+            movies: hasMount ? movies : pageArrayMovies,
+            retedMovies: hasMount ? [...uniqueMovies] : key ? [...uniqueMovies] : [...retedMovies],
+            loading: false,
+            error: false,
+            page: pageNumber,
+            notFound: false,
+          };
         });
       })
       .catch((error) => {
@@ -122,30 +146,30 @@ class HeaderTabs extends React.Component {
       };
     };
     // eslint-disable-next-line func-names
-    return function (...arg) {
-      debounc(f, 1000)(arg);
+    return (...arg) => {
+      const [page, key, e] = arg;
+      if (e.target.value.trim() !== '' || e.target.value === ' ') {
+        debounc(f, 1000)([page, key, e.target.value]);
+      } else {
+        this.getResurs(page, false, '');
+      }
     };
   };
 
   getMovie = this.decoratorOverService(this.getResurs);
 
-  changePage = (pageNumber) => {
-    this.setState({ loading: true });
-    this.getResurs(pageNumber);
-  };
-
   onRating = (_id, value) => {
     const sessionId = localStorage.getItem('guest_session_id');
-    let reted = JSON.parse(localStorage.getItem('reted'));
+    const reted = JSON.parse(localStorage.getItem('reted'));
     let map;
-    if (!reted) {
-      localStorage.setItem('reted', JSON.stringify([[_id, value]]));
-      reted = JSON.parse(localStorage.getItem('reted'));
-    }
-    // eslint-disable-next-line prefer-const
-    map = new Map(reted);
 
     const recordingData = () => {
+      const r = JSON.parse(localStorage.getItem('reted'));
+      if (!r) {
+        localStorage.setItem('reted', JSON.stringify([[_id, value]]));
+      }
+      // eslint-disable-next-line prefer-const
+      map = new Map(r);
       if (value === 0) {
         map.delete(_id);
       } else {
@@ -153,9 +177,17 @@ class HeaderTabs extends React.Component {
       }
       localStorage.setItem('reted', JSON.stringify([...map]));
       this.setState((pre) => {
-        const { movies } = pre;
-        const updateMovies = movies.map((movie) => {
-          if (movie.id === _id) {
+        const { movies, page, retedMovies } = pre;
+        const pageArrayMovies = new Map(movies);
+
+        const moviesArr = pageArrayMovies.get(page);
+        const ratedFilm = [];
+        const updateMovies = moviesArr.map((movie) => {
+          if (movie.id === _id && movie.value !== 0) {
+            ratedFilm.push({
+              ...movie,
+              rateValue: value,
+            });
             return {
               ...movie,
               rateValue: value,
@@ -163,11 +195,34 @@ class HeaderTabs extends React.Component {
           }
           return movie;
         });
+        pageArrayMovies.set(page, updateMovies);
+        let resultsFilms = [];
+        if (retedMovies.length) {
+          resultsFilms = [...ratedFilm, ...retedMovies];
+        } else {
+          resultsFilms = ratedFilm;
+        }
+
+        const uniqueMovies = resultsFilms.filter(
+          (v, index, self) => self.findIndex((item) => item.id === v.id) === index
+        );
+
         return {
-          movies: updateMovies,
+          movies: pageArrayMovies,
+          retedMovies: uniqueMovies,
         };
       });
     };
+
+    if (!reted) {
+      this.service.setRatingMovies(_id, sessionId, value).then((response) => {
+        if (response.ok) {
+          recordingData();
+        }
+      });
+    }
+    // eslint-disable-next-line prefer-const
+    map = new Map(reted);
 
     if (value === 0) {
       this.service.deleteRateMovie(_id, sessionId).then((response) => {
@@ -186,14 +241,29 @@ class HeaderTabs extends React.Component {
     }
   };
 
+  changePage = (pageNumber) => {
+    const { fromSearch } = this.state;
+    this.setState({ loading: true });
+    if (fromSearch) {
+      this.getResurs(pageNumber, true, fromSearch);
+    } else {
+      this.getResurs(pageNumber);
+    }
+  };
+
+  goodsChangePage = (pageNumber) => {
+    this.setState({ goodsPage: pageNumber });
+  };
+
   render() {
-    const { movies, error, notFound, page, loading } = this.state;
+    const { movies, retedMovies, error, notFound, page, loading, goodsPage } = this.state;
     const s = {
       onAlertShowBlock: this.onAlertShowBlock,
       changePage: this.changePage,
-      getMovie: this.getMovie,
       onRating: this.onRating,
-      getResurs: this.getResurs,
+      goodsChangePage: this.goodsChangePage,
+      goodsPage,
+      retedMovies,
       movies,
       error,
       notFound,
@@ -209,7 +279,7 @@ class HeaderTabs extends React.Component {
               {
                 key: '1',
                 label: `Search`,
-                children: <Search />,
+                children: <Search getMovie={this.getMovie} page={page} />,
               },
               {
                 key: '2',

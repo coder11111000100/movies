@@ -1,10 +1,10 @@
+import PropTypes from 'prop-types';
 /* eslint-disable no-nested-ternary */
 import { Typography } from 'antd';
 import './HeaderCard.css';
 
-const { Title } = Typography;
-
 function HeaderCard({ title, rate }) {
+  const { Title } = Typography;
   const styleColor = {
     red: '#E90000',
     orange: '#E97E00',
@@ -35,5 +35,15 @@ function HeaderCard({ title, rate }) {
     </div>
   );
 }
+
+HeaderCard.defaultProps = {
+  title: '',
+  rate: 0,
+};
+
+HeaderCard.propTypes = {
+  title: PropTypes.string,
+  rate: PropTypes.number,
+};
 
 export { HeaderCard };

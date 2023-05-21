@@ -19,7 +19,8 @@ class Service {
 
   getGenresMovies = () => this.baseGetRequest(`${this.BASEURL}genre/movie/list?${this.APIKEY}&language=en-US`);
 
-  getSearchMovies = (name) => this.baseGetRequest(`${this.BASEURL}search/movie?${this.APIKEY}&query=${name}`);
+  getSearchMovies = (name, pageNumber = 1) =>
+    this.baseGetRequest(`${this.BASEURL}search/movie?${this.APIKEY}&query=${name}&page=${pageNumber}`);
 
   setRatingMovies = (id, sessionId, rate) => {
     const url = `${this.BASEURL}movie/${id}/rating?${this.APIKEY}&guest_session_id=${sessionId}`;
@@ -34,6 +35,9 @@ class Service {
       console.error('Возникла проблема: ', err.message);
     });
   };
+
+  getRatedMovies = async (sessionId) =>
+    this.baseGetRequest(`${this.BASEURL}guest_session/${sessionId}/rated/movies?${this.APIKEY}`);
 
   deleteRateMovie = (id, sessionId) => {
     const url = `${this.BASEURL}movie/${id}/rating?${this.APIKEY}&guest_session_id=${sessionId}`;

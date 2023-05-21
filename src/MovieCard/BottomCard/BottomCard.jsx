@@ -1,22 +1,29 @@
-import { Rate, Typography } from 'antd';
+import PropTypes from 'prop-types';
+import { Rate } from 'antd';
 import './BottomCard.css';
 
-const { Paragraph } = Typography;
-function BottomCard({ description, rateValue, id, onRating }) {
-  const text = description.split(' ').slice(0, 22).join(' ');
+function BottomCard({ rateValue, id, onRating }) {
   return (
-    <>
-      <Paragraph className="description-text">{`${text}...`}</Paragraph>
-      <Rate
-        onChange={(value) => onRating(id, value)}
-        count={10}
-        allowHalf
-        defaultValue={rateValue}
-        // value={rateValue}
-        rootClassName="stars"
-      />
-    </>
+    <Rate
+      onChange={(value) => onRating(id, value)}
+      count={10}
+      allowHalf
+      defaultValue={rateValue}
+      rootClassName="stars"
+    />
   );
 }
+
+BottomCard.defaultProps = {
+  rateValue: 0,
+  id: 0,
+  onRating: Function.prototype,
+};
+
+BottomCard.propTypes = {
+  rateValue: PropTypes.number,
+  id: PropTypes.number,
+  onRating: PropTypes.func,
+};
 
 export { BottomCard };

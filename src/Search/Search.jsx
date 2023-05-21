@@ -1,26 +1,25 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { Input } from 'antd';
 import { Main } from './Main/Main';
 import './Search.css';
-import { Consumer } from '../ServiceContext/ServiceContext';
 
-function Search() {
+function Search({ getMovie, page }) {
   return (
-    <Consumer>
-      {({ getMovie, getResurs, ...arg }) => (
-        <div className="search-gap">
-          <Input
-            onChange={(e) => {
-              if (e.target.value.trim() !== '' || e.target.value === ' ') getMovie(1, true, e.target.value);
-              else getResurs(1, false, '');
-            }}
-            placeholder="Type to search..."
-          />
-          <Main mainAll={arg} />
-        </div>
-      )}
-    </Consumer>
+    <div className="search-gap">
+      <Input onChange={(e) => getMovie(page, true, e)} placeholder="Type to search..." />
+      <Main />
+    </div>
   );
 }
 
+Search.defaultProps = {
+  getMovie: Function.prototype,
+  page: 1,
+};
+
+Search.propTypes = {
+  getMovie: PropTypes.func,
+  page: PropTypes.number,
+};
 export { Search };

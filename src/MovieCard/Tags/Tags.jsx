@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Space, Tag, Typography } from 'antd';
 import React from 'react';
 import { nanoid } from 'nanoid';
@@ -16,5 +17,13 @@ function Tags({ genres }) {
     </div>
   );
 }
+
+Tags.defaultProps = {
+  genres: [],
+};
+
+Tags.propTypes = {
+  genres: PropTypes.array,
+};
 
 export { Tags };
